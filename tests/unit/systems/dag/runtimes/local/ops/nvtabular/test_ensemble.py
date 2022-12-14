@@ -52,4 +52,5 @@ def test_workflow_op_serving_triton(tmpdir, dataset, engine, runtime):
     response = wkflow_ensemble.transform(dictarray, runtime=runtime)
 
     for col_name in workflow.output_schema.column_names:
-        assert response[col_name].shape[0] == input_data[col_name.split("_")[0]].shape[0]
+        original_col_name = col_name.split("_")[0]
+        assert response[col_name].shape[0] == input_data[original_col_name].shape[0]

@@ -21,3 +21,5 @@ from merlin.systems.dag.dictarray import Column
 def test_column_scalar_list():
     column = Column(np.array([[1], [2], [3]]))
     assert column.is_list is True
+    assert np.array_equal(column.values, np.asarray([[1], [2], [3]]))
+    assert column.row_lengths == [1, 1, 1]
