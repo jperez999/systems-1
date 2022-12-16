@@ -278,6 +278,9 @@ class QueryFeast(PipelineableInferenceOperator):
         """
         entity_ids = transformable[self.entity_column]
         array_lib = entity_ids._array_lib
+        num_users = entity_ids.shape[0]
+        num_items_per_user = entity_ids.shape[1]
+        entity_ids = entity_ids.values.reshape((-1, 1))
 
         if len(entity_ids) < 1:
             raise ValueError(
@@ -308,7 +311,7 @@ class QueryFeast(PipelineableInferenceOperator):
             feature_array = array_lib.array([feature_value]).T.astype(
                 self.output_schema[prefixed_name].dtype
             )
-            output_tensors[prefixed_name] = feature_array
+            output_tensors[prefixed_name] = feature_array.reshape(num_users, num_items_per_user)
 
         # Multi-hot categorical
         for feature_name in self.mh_features:
@@ -317,11 +320,8 @@ class QueryFeast(PipelineableInferenceOperator):
 
             row_lengths = None
             if isinstance(feature_value[0], list) and self.output_schema[prefixed_name].is_ragged:
-                # concatenate lists we got back from Feast
-                flattened_value = []
-                for val in feature_value:
-                    flattened_value.extend(val)
-
+                flattened_value = np.asarray(feature_value).flatten()
+                # raise ValueError("FlattenedValue", flattened_value)
                 # get the lengths of the lists
                 row_lengths = [len(vals) for vals in feature_value]
 
@@ -342,6 +342,10 @@ class QueryFeast(PipelineableInferenceOperator):
             ).T
 
             output_tensors[prefixed_name] = (feature_array, feature_row_lengths)
+
+        # TODO: Reshape the output tensors back into the right number of user rows
+        for tensor_name, tensor in output_tensors.items():
+            output_tensors[tensor_name] = tensor.reshape(num_users, num_items_per_user)
 
         return type(transformable)(output_tensors)
 
